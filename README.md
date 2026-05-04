@@ -37,7 +37,7 @@ A fully decoupled, protocol-driven deeplink system for Swift. Handles custom sch
 In `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/your-org/DeeplinkKit", from: "1.0.0")
+.package(url: "https://github.com/KananAbilzada/ModularDeeplink", from: "1.0.0")
 ```
 
 Or add it via Xcode: **File → Add Package Dependencies**.
