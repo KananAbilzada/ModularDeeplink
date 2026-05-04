@@ -1,0 +1,167 @@
+// AppDelegate+Deeplinks.swift
+// Example Integration — NOT part of the framework
+//
+// Copy this file into your app target to integrate DeeplinkKit.
+// Adapt module list, routes, and middleware to your project.
+
+import UIKit
+import DeeplinkKit
+
+// MARK: - AppDelegate Integration
+
+extension AppDelegate {
+
+    /// Call from application(_:didFinishLaunchingWithOptions:)
+    func configureDeeplinks() {
+        DeeplinkBuilder()
+            // ── Schemes ──────────────────────────────────────────────────
+            .schemes(["myapp", "myapp-debug"])
+            .universalLinkHosts(["app.example.com", "www.example.com"])
+
+            // ── Route Templates ───────────────────────────────────────────
+            .routes([
+                // Store
+                "product/:productId",
+                "store/:storeId/product/:productId",
+                "category/:slug",
+                "search",
+
+                // Profile & Auth
+                "profile/:userId",
+                "profile/:userId/settings",
+                "settings/:section",
+
+                // Transactional
+                "order/:orderId",
+                "receipt/:transactionId",
+                "checkout",
+
+                // Social
+                "chat/:threadId",
+                "inbox",
+
+                // Navigation
+                "home",
+                "notifications",
+            ])
+
+            // ── Middleware (order matters) ────────────────────────────────
+            .middleware([
+                LoggingMiddleware(level: .debug),
+
+                RateLimitMiddleware(interval: 0.5),
+
+                AuthMiddleware(
+                    protectedRoutes: ["profile", "order", "receipt", "checkout", "chat", "inbox"],
+                    loginRedirectURL: URL(string: "myapp://auth/login")
+                ),
+
+                AnalyticsMiddleware { event in
+                    // Forward to your analytics SDK:
+                    // Analytics.track("deeplink", properties: [
+                    //     "url": event.url.absoluteString,
+                    //     "route": event.routeIdentifier ?? "",
+                    //     "source": event.source
+                    // ])
+                    print("[Analytics] \(event.routeIdentifier ?? event.url.absoluteString)")
+                },
+
+                FeatureFlagMiddleware(
+                    routeToFlagMap: [
+                        "checkout": "new_checkout_flow",
+                        "category": "category_v2"
+                    ],
+                    isFlagEnabled: { flagKey in
+                        // Replace with your feature flag SDK:
+                        // return await FeatureFlags.isEnabled(flagKey)
+                        return true
+                    }
+                ),
+            ])
+
+            // ── Feature Modules ───────────────────────────────────────────
+            // .modules([
+            //     StoreModule(),
+            //     ProfileModule(),
+            //     ChatModule(),
+            //     OrderModule(),
+            // ])
+
+            // ── Fallback ──────────────────────────────────────────────────
+            .fallback(WebFallbackHandler(baseWebURL: URL(string: "https://app.example.com")))
+
+            // ── Callbacks ─────────────────────────────────────────────────
+            .onError { context, error in
+                print("[Deeplink Error] \(error) — \(context.url)")
+                // CrashReporter.record(error, context: ["url": context.url.absoluteString])
+            }
+            .onUnhandled { url in
+                print("[Deeplink Unhandled] \(url)")
+            }
+
+            .build()
+    }
+
+    // ── UIKit lifecycle hooks ─────────────────────────────────────────────
+
+    func application(_ app: UIApplication, open url: URL,
+                     options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        DeeplinkManager.shared.handle(openURL: url, options: options)
+    }
+
+    func application(_ application: UIApplication,
+                     continue userActivity: NSUserActivity,
+                     restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+        DeeplinkManager.shared.handle(userActivity: userActivity)
+    }
+
+    func application(_ application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        DeeplinkManager.shared.handle(remoteNotification: userInfo)
+        completionHandler(.noData)
+    }
+
+    func application(_ application: UIApplication,
+                     performActionFor shortcutItem: UIApplicationShortcutItem,
+                     completionHandler: @escaping (Bool) -> Void) {
+        DeeplinkManager.shared.handle(shortcutItem: shortcutItem, completionHandler: completionHandler)
+    }
+}
+
+// MARK: - SceneDelegate Integration
+
+@available(iOS 13.0, *)
+extension SceneDelegate {
+
+    func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
+               options connectionOptions: UIScene.ConnectionOptions) {
+        DeeplinkManager.shared.handleSceneConnection(options: connectionOptions)
+        // Mark ready after root view controller is set up:
+        DeeplinkManager.shared.markReady()
+    }
+
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        DeeplinkManager.shared.handle(urlContexts: URLContexts)
+    }
+
+    func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        DeeplinkManager.shared.handle(continueUserActivity: userActivity)
+    }
+}
+
+// MARK: - Example Module Handler
+
+/// Minimal example showing how to implement DeeplinkHandling in a feature module.
+final class HomeDeeplinkHandler: DeeplinkHandling {
+    let priority = 50
+    let supportedPatterns = ["home"]
+
+    func handle(context: DeeplinkContext) async throws {
+        let tab = context.resolvedRoute?.queryParams["tab"]
+        await MainActor.run {
+            // NavigationCoordinator.shared.switchToHome(tab: tab)
+            print("Navigate to home, tab: \(tab ?? "default")")
+        }
+    }
+}

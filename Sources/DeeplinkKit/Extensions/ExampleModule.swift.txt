@@ -1,0 +1,260 @@
+// ExampleModule.swift
+// DeeplinkKit — Examples/
+//
+// A complete, copy-paste reference showing how a real feature module
+// integrates with DeeplinkKit. This file is NOT compiled into the framework.
+//
+// USAGE: Copy the pattern below into your feature module.
+// Replace "Store" with your module name and adjust routes.
+
+/*
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 1 — Define your routes in one place (RouteRegistry extension)
+// ─────────────────────────────────────────────────────────────────────────────
+
+import DeeplinkKit
+
+extension RouteRegistry {
+    // Product routes
+    static let productDetail   = RouteRegistry("product/:productId")
+    static let productInStore  = RouteRegistry("store/:storeId/product/:productId")
+
+    // Category routes
+    static let categoryBrowse  = RouteRegistry("category/:slug")
+    static let categorySearch  = RouteRegistry("search")
+
+    // Checkout routes
+    static let checkout        = RouteRegistry("checkout")
+    static let orderDetail     = RouteRegistry("order/:orderId")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 2 — Implement handlers (one per logical route group)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// StoreModule/Handlers/ProductDeeplinkHandler.swift
+
+final class ProductDeeplinkHandler: DeeplinkHandling {
+
+    // Tried before lower-priority handlers
+    let priority = 100
+
+    // Patterns this handler owns
+    let supportedPatterns = [
+        RouteRegistry.productDetail.template,
+        RouteRegistry.productInStore.template
+    ]
+
+    // Web fallback if app handling fails
+    let fallbackURL = URL(string: "https://app.example.com/store")
+
+    // Injected coordinator (your app's navigation layer)
+    private weak var coordinator: NavigationCoordinating?
+
+    init(coordinator: NavigationCoordinating) {
+        self.coordinator = coordinator
+    }
+
+    func handle(context: DeeplinkContext) async throws {
+        guard let route = context.resolvedRoute else {
+            throw DeeplinkError.internal("No resolved route")
+        }
+
+        guard let productId = route.pathParam("productId", as: String.self) else {
+            throw DeeplinkError.missingParameter("productId")
+        }
+
+        let storeId = route.pathParam("storeId", as: String.self)   // optional
+        let refSource = route.queryParam("ref", as: String.self)     // optional
+
+        // Example: log ref source for attribution
+        if let ref = refSource {
+            AnalyticsService.track("product_opened_from", source: ref)
+        }
+
+        // Navigate on main thread
+        await coordinator?.push(route: route)
+
+        // Or call your own coordinator method directly:
+        // await MainActor.run {
+        //     AppNavigator.shared.openProduct(id: productId, storeId: storeId)
+        // }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 3 — Register in your module
+// ─────────────────────────────────────────────────────────────────────────────
+
+// StoreModule/StoreModule.swift
+
+class StoreModule {
+    let coordinator: NavigationCoordinating
+
+    init(coordinator: NavigationCoordinating) {
+        self.coordinator = coordinator
+    }
+}
+
+extension StoreModule: DeeplinkRegistrable {
+    func registerDeeplinks(in manager: DeeplinkManager) {
+        manager.register(handler: ProductDeeplinkHandler(coordinator: coordinator))
+        manager.register(handler: CategoryDeeplinkHandler(coordinator: coordinator))
+        manager.register(handler: CheckoutDeeplinkHandler(coordinator: coordinator))
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 4 — Bootstrap everything in App/AppDelegate
+// ─────────────────────────────────────────────────────────────────────────────
+
+// App.swift (SwiftUI)
+
+import SwiftUI
+import DeeplinkKit
+
+@main
+struct MyApp: App {
+
+    let coordinator = AppNavigationCoordinator()
+
+    init() {
+        DeeplinkBuilder()
+            .schemes(["myapp"])
+            .universalLinkHosts(["app.example.com"])
+            .routes(RouteRegistry.allTemplates)     // see STEP 5
+            .middleware(LoggingMiddleware())
+            .middleware(RateLimitMiddleware(interval: 0.5))
+            .middleware(AuthMiddleware(
+                protectedRoutes: ["checkout", "order", "profile"],
+                loginRedirectURL: URL(string: "myapp://auth/login")
+            ))
+            .middleware(AnalyticsMiddleware { event in
+                AnalyticsService.track("deeplink", properties: [
+                    "url":    event.url.absoluteString,
+                    "route":  event.routeIdentifier ?? "unknown",
+                    "source": event.source
+                ])
+            })
+            .modules([
+                StoreModule(coordinator: coordinator),
+                ProfileModule(coordinator: coordinator),
+                AuthModule(coordinator: coordinator)
+            ])
+            .fallback(WebFallbackHandler(baseWebURL: URL(string: "https://app.example.com")))
+            .onError { context, error in
+                CrashReporter.record(error, extra: ["url": context.url.absoluteString])
+            }
+            .build()
+
+        DeeplinkManager.shared.markReady()
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            RootView(coordinator: coordinator)
+                .handlesDeeplinks()    // attaches onOpenURL + onContinueUserActivity
+        }
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 5 — Centralise all templates (optional but recommended)
+// ─────────────────────────────────────────────────────────────────────────────
+
+extension RouteRegistry {
+    /// All templates registered across every module.
+    /// Pass this to DeeplinkBuilder.routes(_:) for full parser coverage.
+    static var allTemplates: [String] {
+        [
+            productDetail.template,
+            productInStore.template,
+            categoryBrowse.template,
+            categorySearch.template,
+            checkout.template,
+            orderDetail.template,
+            // add more as modules grow
+        ]
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 6 — Build URLs using DeeplinkURLBuilder (no hardcoded strings)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Anywhere in your app:
+
+let productURL = RouteRegistry.productDetail
+    .builder(scheme: "myapp")
+    .set("productId", "abc123")
+    .query("ref", "share-sheet")
+    .build()
+// → myapp://product/abc123?ref=share-sheet
+
+let storeProductURL = RouteRegistry.productInStore
+    .builder(scheme: "https", host: "app.example.com")
+    .set("storeId", "s1")
+    .set("productId", "p99")
+    .query("tab", "reviews")
+    .build()
+// → https://app.example.com/store/s1/product/p99?tab=reviews
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 7 — Handler unit tests (using DeeplinkTestCase)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// StoreModuleTests/ProductHandlerTests.swift
+
+import XCTest
+@testable import DeeplinkKit
+
+final class ProductHandlerTests: DeeplinkTestCase {
+
+    var coordinator: RecordingNavigationCoordinator!
+    var handler: ProductDeeplinkHandler!
+
+    override func setUp() async throws {
+        try await super.setUp()
+        coordinator = RecordingNavigationCoordinator()
+        handler = ProductDeeplinkHandler(coordinator: coordinator)
+    }
+
+    func testHandlesProductRoute() async throws {
+        try await fire("myapp://product/abc123", handler: handler)
+        XCTAssertEqual(coordinator.pushedRoutes.count, 1)
+    }
+
+    func testExtractsProductId() async throws {
+        let ctx = try await fire("myapp://product/abc123?ref=email", handler: handler)
+        XCTAssertPathParam(ctx.resolvedRoute, key: "productId", equals: "abc123")
+        XCTAssertQueryParam(ctx.resolvedRoute, key: "ref", equals: "email")
+    }
+
+    func testRejectsUnrelatedRoute() async throws {
+        // canHandle returns false → the handler should not be called
+        let route = DeeplinkRoute(
+            identifier: "profile",
+            rawURL: URL(string: "myapp://profile/1")!,
+            scheme: "myapp", host: "profile"
+        )
+        XCTAssertFalse(handler.canHandle(route: route))
+    }
+
+    func testMissingProductIdThrows() async throws {
+        // Manually construct a route without the productId param
+        var ctx = makeContext(
+            url: "myapp://product",
+            routeIdentifier: "product",
+            pathParams: [:]          // ← intentionally empty
+        )
+        do {
+            try await handler.handle(context: ctx)
+            XCTFail("Expected missingParameter error")
+        } catch DeeplinkError.missingParameter(let key) {
+            XCTAssertEqual(key, "productId")
+        }
+    }
+}
+
+*/
