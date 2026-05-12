@@ -148,8 +148,50 @@ public final class DeeplinkManager: @unchecked Sendable {
     /// - Returns: `true` if the URL was accepted for processing (does not guarantee handling).
     @discardableResult
     public func process(url: URL, source: DeeplinkSource = .unknown) -> Bool {
-        let context = DeeplinkContext(url: url, source: source)
+        let context = DeeplinkContext(
+            url: url,
+            source: source,
+            options: DeeplinkOpenOptions(url: url)
+        )
         return processContext(context)
+    }
+
+    /// Process a URL with explicit presentation options.
+    /// - Returns: `true` if the URL was accepted for processing (does not guarantee handling).
+    @discardableResult
+    public func process(
+        url: URL,
+        source: DeeplinkSource = .unknown,
+        options: DeeplinkOpenOptions
+    ) -> Bool {
+        let context = DeeplinkContext(url: url, source: source, options: options)
+        return processContext(context)
+    }
+
+    /// Build and process a route from a `RouteRegistry` declaration.
+    /// Use this for internal, cross-module navigation without hardcoded URL strings.
+    @discardableResult
+    public func open(
+        _ route: RouteRegistry,
+        parameters: [String: String] = [:],
+        query: [String: String] = [:],
+        options: DeeplinkOpenOptions = .init(),
+        scheme: String
+    ) -> Bool {
+        var builder = route.builder(scheme: scheme)
+        parameters.forEach { key, value in
+            builder = builder.set(key, value)
+        }
+        query.forEach { key, value in
+            builder = builder.query(key, value)
+        }
+
+        guard let url = builder.build() else {
+            DeeplinkLogger.log(.error, "Failed to build deeplink URL for route: \(route.template)")
+            return false
+        }
+
+        return process(url: url, source: .programmatic, options: options)
     }
 
     /// Process a pre-built DeeplinkContext.

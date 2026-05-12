@@ -26,6 +26,9 @@ public struct DeeplinkContext: Sendable {
     /// Arbitrary key-value metadata (e.g. push notification payload extras)
     public let metadata: [String: String]
 
+    /// Presentation hints for app navigation.
+    public let options: DeeplinkOpenOptions
+
     /// Timestamp when this context was created
     public let receivedAt: Date
 
@@ -45,6 +48,7 @@ public struct DeeplinkContext: Sendable {
         source: DeeplinkSource,
         authState: AuthState = .unknown,
         metadata: [String: String] = [:],
+        options: DeeplinkOpenOptions = .init(),
         receivedAt: Date = Date(),
         traceID: String = UUID().uuidString
     ) {
@@ -52,6 +56,7 @@ public struct DeeplinkContext: Sendable {
         self.source = source
         self.authState = authState
         self.metadata = metadata
+        self.options = options
         self.receivedAt = receivedAt
         self.traceID = traceID
     }

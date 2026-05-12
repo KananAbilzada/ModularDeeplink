@@ -90,6 +90,14 @@ public struct DeeplinkURLBuilder {
         return copy
     }
 
+    /// Add presentation hints for the receiving app.
+    public func presentation(_ style: DeeplinkPresentationStyle, animated: Bool = true) -> DeeplinkURLBuilder {
+        var copy = self
+        let options = DeeplinkOpenOptions(presentationStyle: style, animated: animated)
+        copy.queryItems.append(contentsOf: options.queryItems.map { ($0.name, $0.value ?? "") })
+        return copy
+    }
+
     // MARK: - Build
 
     /// Construct the final URL by substituting path parameters into the template.
