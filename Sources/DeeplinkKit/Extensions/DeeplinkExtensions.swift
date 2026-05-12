@@ -42,7 +42,10 @@ public extension DeeplinkManager {
         let candidates = ["deeplink_url", "url", "link", "deep_link"]
         for key in candidates {
             if let urlString = userInfo[key] as? String, let url = URL(string: urlString) {
-                let payload = userInfo.compactMapValues { $0 as? String }
+                let payload = userInfo.reduce(into: [String: String]()) { result, item in
+                    guard let value = item.value as? String else { return }
+                    result[String(describing: item.key)] = value
+                }
                 _ = process(url: url, source: .pushNotification(payload: payload))
                 return
             }
