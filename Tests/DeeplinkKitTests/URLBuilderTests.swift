@@ -110,6 +110,58 @@ final class DeeplinkURLBuilderTests: XCTestCase {
         let b = base.set("id", "bbb")
         XCTAssertNotEqual(a.build()?.absoluteString, b.build()?.absoluteString)
     }
+
+    func testPresentationPush() {
+        let url = DeeplinkURLBuilder(scheme: "myapp")
+            .route("product/:productId")
+            .set("productId", "123")
+            .presentation(.push)
+            .build()
+
+        XCTAssertEqual(DeeplinkOpenOptions(url: url!).presentationStyle, .push)
+    }
+
+    func testPresentationPresent() {
+        let url = DeeplinkURLBuilder(scheme: "myapp")
+            .route("product/:productId")
+            .set("productId", "123")
+            .presentation(.present)
+            .build()
+
+        XCTAssertEqual(DeeplinkOpenOptions(url: url!).presentationStyle, .present)
+        XCTAssertFalse(url!.absoluteString.contains("dk_animated"))
+    }
+
+    func testPresentationFullScreen() {
+        let url = DeeplinkURLBuilder(scheme: "myapp")
+            .route("product/:productId")
+            .set("productId", "123")
+            .presentation(.fullScreen)
+            .build()
+
+        XCTAssertEqual(DeeplinkOpenOptions(url: url!).presentationStyle, .fullScreen)
+    }
+
+    func testPresentationSetRoot() {
+        let url = DeeplinkURLBuilder(scheme: "myapp")
+            .route("home")
+            .presentation(.setRoot)
+            .build()
+
+        XCTAssertEqual(DeeplinkOpenOptions(url: url!).presentationStyle, .setRoot)
+    }
+
+    func testPresentationSelectTab() {
+        let url = DeeplinkURLBuilder(scheme: "myapp")
+            .route("profile/:userId")
+            .set("userId", "42")
+            .presentation(.selectTab(2), animated: false)
+            .build()
+
+        let options = DeeplinkOpenOptions(url: url!)
+        XCTAssertEqual(options.presentationStyle, .selectTab(2))
+        XCTAssertFalse(options.animated)
+    }
 }
 
 // MARK: - RouteRegistry Tests

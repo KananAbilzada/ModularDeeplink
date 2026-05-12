@@ -169,6 +169,49 @@ final class PipelineIntegrationTests: XCTestCase {
         XCTAssertEqual(localManager.registeredPatterns(moduleID: "profile"), ["profile/:userId"])
         XCTAssertTrue(localManager.registeredPatterns(moduleID: "settings").isEmpty)
     }
+
+    func testProcessParsesPresentationOptionsFromURL() async throws {
+        let expectation = expectation(description: "presentation options parsed")
+
+        let handler = ClosureHandler(patterns: ["profile/:userId"]) { context in
+            XCTAssertEqual(context.options.presentationStyle, .present)
+            XCTAssertFalse(context.options.animated)
+            XCTAssertEqual(context.resolvedRoute?.queryParams["dk_presentation"], "present")
+            expectation.fulfill()
+        }
+        manager.register(handler: handler)
+        manager.markReady()
+
+        manager.process(url: URL(string: "myapp://profile/42?dk_presentation=present&dk_animated=false")!)
+        await fulfillment(of: [expectation], timeout: 3)
+    }
+
+    func testProgrammaticOpenPassesExplicitOptionsIntoHandler() async throws {
+        let expectation = expectation(description: "programmatic open handled")
+        let localManager = DeeplinkManager(configuration: .init())
+        localManager.configure(parser: StandardURLParser(schemes: ["myapp"], templates: []))
+
+        let handler = ClosureHandler(patterns: ["profile/:userId"]) { context in
+            XCTAssertEqual(context.resolvedRoute?.pathParams["userId"], "42")
+            XCTAssertEqual(context.resolvedRoute?.queryParams["ref"], "store")
+            XCTAssertEqual(context.options.presentationStyle, .selectTab(3))
+            XCTAssertFalse(context.options.animated)
+            expectation.fulfill()
+        }
+        localManager.register(handler: handler)
+        localManager.markReady()
+
+        let accepted = localManager.open(
+            RouteRegistry("profile/:userId"),
+            parameters: ["userId": "42"],
+            query: ["ref": "store"],
+            options: .init(presentationStyle: .selectTab(3), animated: false),
+            scheme: "myapp"
+        )
+
+        XCTAssertTrue(accepted)
+        await fulfillment(of: [expectation], timeout: 3)
+    }
 }
 
 // MARK: - RecordingNavigationCoordinator Tests

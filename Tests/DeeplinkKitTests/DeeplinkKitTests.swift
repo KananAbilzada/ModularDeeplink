@@ -32,6 +32,23 @@ final class DeeplinkContextTests: XCTestCase {
         )
         XCTAssertEqual(ctx.metadata["badge"], "3")
     }
+
+    func testOpenOptionsDefaultsAndEquality() {
+        let first = DeeplinkOpenOptions()
+        let second = DeeplinkOpenOptions(presentationStyle: .automatic, animated: true)
+
+        XCTAssertEqual(first, second)
+        XCTAssertEqual(first.presentationStyle, .automatic)
+        XCTAssertTrue(first.animated)
+    }
+
+    func testOpenOptionsFromURL() {
+        let url = URL(string: "myapp://profile/42?dk_presentation=selectTab&dk_tab=2&dk_animated=false")!
+        let options = DeeplinkOpenOptions(url: url)
+
+        XCTAssertEqual(options.presentationStyle, .selectTab(2))
+        XCTAssertFalse(options.animated)
+    }
 }
 
 // MARK: - StandardURLParserTests
