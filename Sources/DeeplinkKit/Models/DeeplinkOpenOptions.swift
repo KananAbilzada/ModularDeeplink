@@ -1,5 +1,6 @@
 // DeeplinkOpenOptions.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Typed presentation hints for deeplink handling.
 

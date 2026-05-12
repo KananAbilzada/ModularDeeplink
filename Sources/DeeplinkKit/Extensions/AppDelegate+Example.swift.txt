@@ -1,5 +1,6 @@
 // AppDelegate+Deeplinks.swift
 // Example Integration — NOT part of the framework
+// Created by Kanan Abilzada.
 //
 // Copy this file into your app target to integrate DeeplinkKit.
 // Adapt module list, routes, and middleware to your project.

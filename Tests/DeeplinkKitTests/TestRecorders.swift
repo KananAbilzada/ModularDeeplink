@@ -1,3 +1,4 @@
+// Created by Kanan Abilzada.
 import Foundation
 
 final class LockedArray<Element>: @unchecked Sendable {

@@ -1,5 +1,6 @@
 // ExampleModule.swift
 // DeeplinkKit — Examples/
+// Created by Kanan Abilzada.
 //
 // A complete, copy-paste reference showing how a real feature module
 // integrates with DeeplinkKit. This file is NOT compiled into the framework.

@@ -1,5 +1,6 @@
 // DeeplinkURLBuilder.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Reverse routing: programmatically construct deeplink URLs from
 // route identifiers and parameters. Keeps URL formats in one place.

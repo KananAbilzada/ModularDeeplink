@@ -1,5 +1,6 @@
 // DeeplinkRoute.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Typed representation of a parsed deeplink URL.
 // Produced by DeeplinkParser, consumed by DeeplinkRouter and DeeplinkHandlers.

@@ -1,5 +1,6 @@
 // DeeplinkRouteDefinition.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Module-owned route declarations. Feature modules expose only their own
 // definitions; the app shell registers modules without centralizing all paths.

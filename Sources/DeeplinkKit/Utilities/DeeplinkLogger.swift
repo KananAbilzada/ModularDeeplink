@@ -1,5 +1,6 @@
 // DeeplinkLogger.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Lightweight, pluggable logger for the deeplink pipeline.
 // Replace the handler to integrate with OSLog, CocoaLumberjack, etc.

@@ -1,5 +1,6 @@
 // DeeplinkRouter.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Priority-based handler registry. Matches a resolved DeeplinkRoute to
 // the best registered handler and dispatches. Thread-safe via NSLock.

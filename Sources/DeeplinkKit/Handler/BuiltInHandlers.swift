@@ -1,5 +1,6 @@
 // ExampleHandlers.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Reference implementations of DeeplinkHandling.
 // Copy and adapt for your feature modules.

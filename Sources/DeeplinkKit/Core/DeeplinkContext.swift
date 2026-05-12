@@ -1,5 +1,6 @@
 // DeeplinkContext.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // The immutable value type that flows through the entire deeplink pipeline.
 // Every stage reads from and optionally transforms this context.

@@ -1,5 +1,6 @@
 // DeeplinkError.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Typed error hierarchy for every failure mode in the deeplink pipeline.
 

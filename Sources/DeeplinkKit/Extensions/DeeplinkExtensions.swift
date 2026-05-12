@@ -1,5 +1,6 @@
 // DeeplinkExtensions.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Convenience extensions for UIKit / SwiftUI app lifecycle integration.
 // Drop these call sites into your AppDelegate or SceneDelegate.

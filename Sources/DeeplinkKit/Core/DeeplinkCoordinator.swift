@@ -1,5 +1,6 @@
 // DeeplinkCoordinator.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Navigation coordinator protocol for use inside handlers.
 // Your app's navigation layer conforms to this — handlers call it

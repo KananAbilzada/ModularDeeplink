@@ -1,5 +1,6 @@
 // DeeplinkParser.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Protocol + concrete implementations for URL → DeeplinkRoute transformation.
 // Uses a Chain-of-Responsibility pattern: parsers are tried in order.

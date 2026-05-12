@@ -1,5 +1,6 @@
 // DeeplinkBuilder.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Fluent builder / DSL for assembling DeeplinkManager at launch.
 // Supports result-builder syntax for clean, readable configuration.

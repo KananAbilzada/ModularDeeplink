@@ -1,5 +1,6 @@
 // DeeplinkManager.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // The single orchestrator and public entry point.
 // Owns the full pipeline: Context → Parse → Middleware → Route → Handle.

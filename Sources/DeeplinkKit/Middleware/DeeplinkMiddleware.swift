@@ -1,5 +1,6 @@
 // DeeplinkMiddleware.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Middleware intercepts the pipeline between Parse and Route stages.
 // Chain pattern: each middleware calls `next` to continue, or throws to abort.

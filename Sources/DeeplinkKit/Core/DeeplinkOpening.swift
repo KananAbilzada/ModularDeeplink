@@ -1,5 +1,6 @@
 // DeeplinkOpening.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Minimal abstraction for opening deeplink contracts from feature modules.
 

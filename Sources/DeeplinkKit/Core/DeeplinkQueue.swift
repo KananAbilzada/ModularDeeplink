@@ -1,5 +1,6 @@
 // DeeplinkQueue.swift
 // DeeplinkKit
+// Created by Kanan Abilzada.
 //
 // Thread-safe FIFO queue for buffering deeplinks during cold start.
 // Optionally persists the last-received URL across app launches.
