@@ -2,12 +2,11 @@
 // DeeplinkKit
 // Created by Kanan Abilzada.
 //
-// Convenience helpers for writing handler and pipeline unit tests.
-// Import DeeplinkKit in your test target and use these directly.
+// Convenience helpers for DeeplinkKit handler and pipeline unit tests.
 
 import Foundation
-#if canImport(XCTest)
 import XCTest
+@testable import DeeplinkKit
 
 // MARK: - DeeplinkTestCase
 
@@ -24,15 +23,15 @@ import XCTest
 ///     }
 /// }
 /// ```
-open class DeeplinkTestCase: XCTestCase {
+class DeeplinkTestCase: XCTestCase {
 
     // MARK: - Isolated Manager
 
     /// A fresh, isolated DeeplinkManager for each test.
     /// Does NOT share state with `DeeplinkManager.shared`.
-    public private(set) var testManager: DeeplinkManager!
+    private(set) var testManager: DeeplinkManager!
 
-    open override func setUp() async throws {
+    override func setUp() async throws {
         try await super.setUp()
         testManager = DeeplinkManager(configuration: .init())
         let parser = StandardURLParser(schemes: ["myapp", "https"], templates: [])
@@ -40,7 +39,7 @@ open class DeeplinkTestCase: XCTestCase {
         testManager.markReady()
     }
 
-    open override func tearDown() async throws {
+    override func tearDown() async throws {
         testManager = nil
         try await super.tearDown()
     }
@@ -51,7 +50,7 @@ open class DeeplinkTestCase: XCTestCase {
     /// Parses the URL, runs `canHandle`, then calls `handle`.
     /// - Returns: The `DeeplinkContext` after handling.
     @discardableResult
-    public func fire(
+    func fire(
         _ urlString: String,
         source: DeeplinkSource = .programmatic,
         authState: AuthState = .authenticated(userID: "test-user"),
@@ -90,7 +89,7 @@ open class DeeplinkTestCase: XCTestCase {
     }
 
     /// Assert a URL parses to the expected route identifier.
-    public func assertParses(
+    func assertParses(
         _ urlString: String,
         toIdentifier expected: String,
         using parser: any DeeplinkParsing,
@@ -110,7 +109,7 @@ open class DeeplinkTestCase: XCTestCase {
     }
 
     /// Assert a URL fails to parse.
-    public func assertFails(
+    func assertFails(
         _ urlString: String,
         using parser: any DeeplinkParsing,
         file: StaticString = #file,
@@ -123,7 +122,7 @@ open class DeeplinkTestCase: XCTestCase {
     }
 
     /// Build a context with a pre-resolved route — shortcut for router/middleware tests.
-    public func makeContext(
+    func makeContext(
         url: String = "myapp://test",
         routeIdentifier: String = "test",
         pathParams: [String: String] = [:],
@@ -149,7 +148,7 @@ open class DeeplinkTestCase: XCTestCase {
 
 // MARK: - XCTestCase Extensions (usable without subclassing)
 
-public extension XCTestCase {
+extension XCTestCase {
 
     /// Assert a `DeeplinkRoute` has the expected path parameter value.
     func XCTAssertPathParam(
@@ -199,5 +198,3 @@ public extension XCTestCase {
         )
     }
 }
-
-#endif
