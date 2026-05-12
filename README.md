@@ -255,6 +255,184 @@ Path templates use `:paramName` for dynamic segments and `*` for wildcards:
 "*"                                 → matches anything (use as fallback)
 ```
 
+Presentation hints can be attached to URLs with reserved query parameters:
+
+```swift
+let url = RouteRegistry("store/product/:productId")
+    .builder(scheme: "myapp")
+    .set("productId", "123")
+    .presentation(.present)
+    .build()
+// myapp://store/product/123?dk_presentation=present
+```
+
+Supported values:
+
+```
+dk_presentation=automatic|push|present|fullScreen|setRoot|selectTab
+dk_tab=2
+dk_animated=true|false
+```
+
+---
+
+## Micro-App Registration
+
+The app shell should own one `DeeplinkManager`. Each micro app should own its routes, handlers, and navigation for its own screens.
+
+```swift
+// MainApp/App.swift
+import DeeplinkKit
+import StoreFeature
+import ProfileFeature
+
+let deeplinkManager = DeeplinkBuilder()
+    .schemes(["myapp"])
+    .universalLinkHosts(["app.example.com"])
+    .modules([
+        StoreDeeplinkModule(navigator: storeNavigator),
+        ProfileDeeplinkModule(navigator: profileNavigator)
+    ])
+    .build(into: DeeplinkManager())
+
+deeplinkManager.markReady()
+```
+
+```swift
+// StoreFeature/StoreDeeplinks.swift
+import DeeplinkKit
+
+public enum StoreDeeplinks {
+    public static let productDetail = RouteRegistry("store/product/:productId")
+    public static let category = RouteRegistry("store/category/:slug")
+}
+```
+
+```swift
+// StoreFeature/StoreDeeplinkModule.swift
+import DeeplinkKit
+
+public struct StoreDeeplinkModule: DeeplinkModule {
+    public let moduleID = "store"
+
+    private let navigator: StoreNavigating
+
+    public init(navigator: StoreNavigating) {
+        self.navigator = navigator
+    }
+
+    public var deeplinkRoutes: [DeeplinkRouteDefinition] {
+        [
+            DeeplinkRouteDefinition(
+                moduleID: moduleID,
+                pattern: StoreDeeplinks.productDetail.template,
+                handler: ProductDeeplinkHandler(navigator: navigator)
+            )
+        ]
+    }
+}
+```
+
+```swift
+// StoreFeature/ProductDeeplinkHandler.swift
+import DeeplinkKit
+
+final class ProductDeeplinkHandler: DeeplinkHandling {
+    let supportedPatterns = [StoreDeeplinks.productDetail.template]
+
+    private let navigator: StoreNavigating
+
+    init(navigator: StoreNavigating) {
+        self.navigator = navigator
+    }
+
+    func handle(context: DeeplinkContext) async throws {
+        guard let productId = context.resolvedRoute?.pathParams["productId"] else {
+            throw DeeplinkError.missingParameter("productId")
+        }
+
+        await navigator.openProduct(
+            id: productId,
+            presentationStyle: context.options.presentationStyle,
+            animated: context.options.animated
+        )
+    }
+}
+```
+
+Cross-module navigation should use route contracts, not direct screen imports:
+
+```swift
+// StoreFeature opens ProfileFeature through DeeplinkKit
+deeplinkOpener.open(
+    ProfileDeeplinks.detail,
+    parameters: ["userId": sellerId],
+    options: .init(presentationStyle: .push),
+    scheme: "myapp"
+)
+```
+
+---
+
+## Module Navigation Examples
+
+UIKit modules can choose presentation based on `context.options`:
+
+```swift
+public final class UIKitStoreNavigator: StoreNavigating {
+    private weak var navigationController: UINavigationController?
+
+    public func openProduct(
+        id: String,
+        presentationStyle: DeeplinkPresentationStyle,
+        animated: Bool
+    ) async {
+        await MainActor.run {
+            let viewController = ProductViewController(productID: id)
+
+            switch presentationStyle {
+            case .automatic, .push:
+                navigationController?.pushViewController(viewController, animated: animated)
+            case .present:
+                navigationController?.present(viewController, animated: animated)
+            case .fullScreen:
+                viewController.modalPresentationStyle = .fullScreen
+                navigationController?.present(viewController, animated: animated)
+            case .setRoot:
+                navigationController?.setViewControllers([viewController], animated: animated)
+            case .selectTab:
+                break
+            }
+        }
+    }
+}
+```
+
+SwiftUI modules can map the same presentation style to `NavigationStack` and sheets:
+
+```swift
+@MainActor
+public final class SwiftUIProfileNavigator: ObservableObject, ProfileNavigating {
+    @Published var path: [ProfileRoute] = []
+    @Published var presentedProfileID: String?
+
+    public func openProfile(
+        userId: String,
+        presentationStyle: DeeplinkPresentationStyle,
+        animated: Bool
+    ) async {
+        switch presentationStyle {
+        case .automatic, .push:
+            path.append(.detail(userId))
+        case .present, .fullScreen:
+            presentedProfileID = userId
+        default:
+            break
+        }
+    }
+}
+```
+
 ---
 
 ## UIKit Integration
